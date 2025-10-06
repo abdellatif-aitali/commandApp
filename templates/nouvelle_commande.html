@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelle Commande - MOUL PRIFA{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">➕ Créer une nouvelle commande</h2>
+    
+    <form method="POST" id="commandeForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="date_commande">Date de commande *</label>
+                <input type="date" id="date_commande" name="date_commande" required value="{{ date_default }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="type_commande">Type de commande *</label>
+                <select id="type_commande" name="type_commande" required>
+                    <option value="">-- Sélectionner --</option>
+                    <option value="fournisseur">Commande Fournisseur</option>
+                    <option value="client">Commande Client / Bon de Livraison</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="nom_tiers">Nom Client/Fournisseur *</label>
+                <input type="text" id="nom_tiers" name="nom_tiers" required placeholder="Ex: Société ABC">
+            </div>
+            
+            <div class="form-group">
+                <label for="telephone_tiers">Téléphone</label>
+                <input type="text" id="telephone_tiers" name="telephone_tiers" placeholder="Ex: +212 6XX-XXXXXX">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="adresse_tiers">Adresse</label>
+            <textarea id="adresse_tiers" name="adresse_tiers" rows="2" placeholder="Adresse complète..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="statut">Statut *</label>
+            <select id="statut" name="statut" required>
+                <option value="en_cours">En cours</option>
+                <option value="livree">Livrée</option>
+                <option value="annulee">Annulée</option>
+            </select>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 2px solid #e0e0e0;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: #333;">📦 Produits</h3>
+            <button type="button" class="btn btn-success" onclick="ajouterLigne()">+ Ajouter une ligne</button>
+        </div>
+        
+        <div class="table-container">
+            <table id="produitsTable" style="font-size: 14px;">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Code</th>
+                        <th>Désignation *</th>
+                        <th style="width: 100px;">Unité *</th>
+                        <th style="width: 100px;">Quantité *</th>
+                        <th style="width: 120px;">Prix Unit. *</th>
+                        <th style="width: 120px;">Total</th>
+                        <th style="width: 80px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="produitsBody">
+                    <tr class="ligne-produit">
+                        <td><input type="text" name="code_produit[]" placeholder="Code"></td>
+                        <td><input type="text" name="designation[]" required placeholder="Désignation du produit"></td>
+                        <td>
+                            <select name="unite[]" required>
+                                <option value="U">U (Unité)</option>
+                                <option value="M">M (Mètre)</option>
+                                <option value="M2">M² (Mètre carré)</option>
+                                <option value="M3">M³ (Mètre cube)</option>
+                                <option value="KG">KG (Kilogramme)</option>
+                                <option value="T">T (Tonne)</option>
+                                <option value="L">L (Litre)</option>
+                                <option value="SAC">SAC</option>
+                            </select>
+                        </td>
+                        <td><input type="number" name="quantite[]" step="0.01" required placeholder="0" class="qte-input" onchange="calculerTotal(this)"></td>
+                        <td><input type="number" name="prix_unitaire[]" step="0.01" required placeholder="0.00" class="prix-input" onchange="calculerTotal(this)"></td>
+                        <td><input type="number" class="total-input" readonly placeholder="0.00" style="background: #f8f9fa;"></td>
+                        <td><button type="button" class="btn btn-danger" style="padding: 8px;" onclick="supprimerLigne(this)">🗑️</button></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f8f9fa; font-weight: bold;">
+                        <td colspan="5" style="text-align: right; padding-right: 20px;">TOTAL NET À PAYER:</td>
+                        <td><input type="text" id="montantTotal" readonly value="0.00 DH" style="background: white; font-weight: bold; font-size: 16px; color: #1a472a;"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: flex-end;">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">❌ Annuler</a>
+            <button type="submit" class="btn btn-primary">💾 Enregistrer la commande</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function ajouterLigne() {
+    const tbody = document.getElementById('produitsBody');
+    const newRow = tbody.rows[0].cloneNode(true);
+    
+    // Réinitialiser les valeurs
+    const inputs = newRow.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (!input.classList.contains('total-input')) {
+            input.value = '';
+        } else {
+            input.value = '0.00';
+        }
+    });
+    
+    tbody.appendChild(newRow);
+}
+
+function supprimerLigne(btn) {
+    const tbody = document.getElementById('produitsBody');
+    if (tbody.rows.length > 1) {
+        btn.closest('tr').remove();
+        calculerMontantTotal();
+    } else {
+        alert('Vous devez avoir au moins une ligne de produit');
+    }
+}
+
+function calculerTotal(input) {
+    const row = input.closest('tr');
+    const qte = parseFloat(row.querySelector('.qte-input').value) || 0;
+    const prix = parseFloat(row.querySelector('.prix-input').value) || 0;
+    const total = qte * prix;
+    
+    row.querySelector('.total-input').value = total.toFixed(2);
+    calculerMontantTotal();
+}
+
+function calculerMontantTotal() {
+    let total = 0;
+    document.querySelectorAll('.total-input').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    
+    document.getElementById('montantTotal').value = total.toFixed(2) + ' DH';
+}
+
+// Validation du formulaire
+document.getElementById('commandeForm').addEventListener('submit', function(e) {
+    const lignes = document.querySelectorAll('#produitsBody tr');
+    let hasValidLine = false;
+    
+    lignes.forEach(ligne => {
+        const designation = ligne.querySelector('input[name="designation[]"]').value.trim();
+        if (designation) {
+            hasValidLine = true;
+        }
+    });
+    
+    if (!hasValidLine) {
+        e.preventDefault();
+        alert('Veuillez ajouter au moins un produit');
+    }
+});
+</script>
+{% endblock %}

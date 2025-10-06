@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - MOUL PRIFA{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">📊 Tableau de bord des commandes</h2>
+    
+    <form method="GET" class="filters">
+        <div class="form-group">
+            <label>Type de commande</label>
+            <select name="type">
+                <option value="">Tous</option>
+                <option value="fournisseur" {% if request.args.get('type') == 'fournisseur' %}selected{% endif %}>Fournisseur</option>
+                <option value="client" {% if request.args.get('type') == 'client' %}selected{% endif %}>Client</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Statut</label>
+            <select name="statut">
+                <option value="">Tous</option>
+                <option value="en_cours" {% if request.args.get('statut') == 'en_cours' %}selected{% endif %}>En cours</option>
+                <option value="livree" {% if request.args.get('statut') == 'livree' %}selected{% endif %}>Livrée</option>
+                <option value="annulee" {% if request.args.get('statut') == 'annulee' %}selected{% endif %}>Annulée</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Date début</label>
+            <input type="date" name="date_debut" value="{{ request.args.get('date_debut', '') }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Date fin</label>
+            <input type="date" name="date_fin" value="{{ request.args.get('date_fin', '') }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Recherche</label>
+            <input type="text" name="recherche" placeholder="N° commande ou nom..." value="{{ request.args.get('recherche', '') }}">
+        </div>
+        
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+            <button type="submit" class="btn btn-primary">🔍 Filtrer</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">🔄 Réinitialiser</a>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>N° Commande</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Client/Fournisseur</th>
+                <th>Montant Total</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if commandes %}
+                {% for commande in commandes %}
+                <tr>
+                    <td><strong>{{ commande.numero_commande }}</strong></td>
+                    <td>{{ commande.date_commande.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if commande.type_commande == 'fournisseur' %}
+                            <span class="badge badge-info">Fournisseur</span>
+                        {% else %}
+                            <span class="badge badge-success">Client</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ commande.nom_tiers }}</td>
+                    <td><strong>{{ "%.2f"|format(commande.montant_total) }} DH</strong></td>
+                    <td>
+                        {% if commande.statut == 'en_cours' %}
+                            <span class="badge badge-warning">En cours</span>
+                        {% elif commande.statut == 'livree' %}
+                            <span class="badge badge-success">Livrée</span>
+                        {% else %}
+                            <span class="badge badge-danger">Annulée</span>
+                        {% endif %}
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <a href="{{ url_for('voir_commande', id=commande.id) }}" class="btn btn-primary" style="padding: 8px 15px; font-size: 12px;">👁️ Voir</a>
+                        <a href="{{ url_for('generer_pdf', id=commande.id) }}" target="_blank" class="btn btn-success" style="padding: 8px 15px; font-size: 12px;">📄 PDF</a>
+                        {% if current_user.is_admin or commande.user_id == current_user.id %}
+                        <form method="POST" action="{{ url_for('supprimer_commande', id=commande.id) }}" style="display: inline;" onsubmit="return confirm('Confirmer la suppression ?');">
+                            <button type="submit" class="btn btn-danger" style="padding: 8px 15px; font-size: 12px;">🗑️</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #999;">
+                        Aucune commande trouvée. <a href="{{ url_for('nouvelle_commande') }}" style="color: #667eea;">Créer une nouvelle commande</a>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+    <strong>📈 Statistiques:</strong> {{ commandes|length }} commande(s) affichée(s)
+</div>
+{% endblock %}

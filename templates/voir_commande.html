@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Commande {{ commande.numero_commande }} - MOUL PRIFA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Retour au tableau de bord</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h2 class="card-title" style="margin: 0;">📄 Détails de la commande</h2>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('generer_pdf', id=commande.id) }}" target="_blank" class="btn btn-success">📥 Télécharger PDF</a>
+            <button onclick="window.open('url_for('generer_pdf', id=commande.id)'); window.print();" class="btn btn-primary">🖨️ Imprimer</button>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+            <h3 style="color: #1a472a; margin-bottom: 15px; font-size: 18px;">Informations générales</h3>
+            <p><strong>Numéro de commande:</strong> {{ commande.numero_commande }}</p>
+            <p><strong>Date:</strong> {{ commande.date_commande.strftime('%d/%m/%Y') }}</p>
+            <p><strong>Type:</strong> 
+                {% if commande.type_commande == 'fournisseur' %}
+                    <span class="badge badge-info">Commande Fournisseur</span>
+                {% else %}
+                    <span class="badge badge-success">Bon de Livraison Client</span>
+                {% endif %}
+            </p>
+            <p><strong>Statut:</strong> 
+                {% if commande.statut == 'en_cours' %}
+                    <span class="badge badge-warning">En cours</span>
+                {% elif commande.statut == 'livree' %}
+                    <span class="badge badge-success">Livrée</span>
+                {% else %}
+                    <span class="badge badge-danger">Annulée</span>
+                {% endif %}
+            </p>
+            <p><strong>Créée par:</strong> {{ commande.utilisateur.username }}</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+            <h3 style="color: #1a472a; margin-bottom: 15px; font-size: 18px;">
+                {% if commande.type_commande == 'fournisseur' %}
+                    Informations Fournisseur
+                {% else %}
+                    Informations Client
+                {% endif %}
+            </h3>
+            <p><strong>Nom:</strong> {{ commande.nom_tiers }}</p>
+            {% if commande.adresse_tiers %}
+            <p><strong>Adresse:</strong> {{ commande.adresse_tiers }}</p>
+            {% endif %}
+            {% if commande.telephone_tiers %}
+            <p><strong>Téléphone:</strong> {{ commande.telephone_tiers }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <h3 style="color: #333; margin-bottom: 20px; font-size: 18px;">📦 Produits commandés</h3>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Désignation</th>
+                    <th>Unité</th>
+                    <th style="text-align: right;">Quantité</th>
+                    <th style="text-align: right;">Prix Unitaire</th>
+                    <th style="text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in commande.lignes %}
+                <tr>
+                    <td>{{ ligne.code_produit or '-' }}</td>
+                    <td>{{ ligne.designation }}</td>
+                    <td>{{ ligne.unite }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(ligne.quantite) }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(ligne.prix_unitaire) }} DH</td>
+                    <td style="text-align: right;"><strong>{{ "%.2f"|format(ligne.total) }} DH</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background: #1a472a; color: white; font-size: 16px;">
+                    <td colspan="5" style="text-align: right; padding-right: 20px;"><strong>MONTANT TOTAL NET À PAYER:</strong></td>
+                    <td style="text-align: right;"><strong>{{ "%.2f"|format(commande.montant_total) }} DH</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div style="margin-top: 20px; padding: 20px; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+    <strong>💡 Astuce:</strong> Vous pouvez imprimer cette commande directement ou la télécharger en PDF format A5 prêt à l'impression.
+</div>
+{% endblock %}
